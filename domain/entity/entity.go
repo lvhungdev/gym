@@ -6,3 +6,10 @@ type User struct {
 	Password string
 	FullName string
 }
+
+func (u User) WithoutPassword() User {
+	user := u
+	user.Password = ""
+
+	return user
+}

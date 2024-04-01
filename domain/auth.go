@@ -31,7 +31,7 @@ func (u AuthUC) SignIn(email string, password string) (entity.User, error) {
 		return entity.User{}, errors.New("credentials are incorrect")
 	}
 
-	return user, nil
+	return user.WithoutPassword(), nil
 }
 
 func (u AuthUC) SignUp(email string, password string) (entity.User, error) {
@@ -52,5 +52,5 @@ func (u AuthUC) SignUp(email string, password string) (entity.User, error) {
 		return entity.User{}, err
 	}
 
-	return user, nil
+	return user.WithoutPassword(), nil
 }

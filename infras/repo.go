@@ -36,8 +36,15 @@ func NewUserRepo() UserRepo {
 }
 
 func (r UserRepo) GetUserById(id string) (entity.User, bool) {
-	// TODO implement this
-	return entity.User{}, false
+	user := entity.User{}
+
+	row := r.db.QueryRow("SELECT * FROM users WHERE id = ?", id)
+	err := row.Scan(&user.Id, &user.Email, &user.Password, &user.FullName)
+	if err != nil {
+		return user, false
+	}
+
+	return user, true
 }
 
 func (r UserRepo) GetUserByEmail(email string) (entity.User, bool) {
