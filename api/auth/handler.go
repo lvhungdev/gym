@@ -1,67 +1,65 @@
 package auth
 
 import (
-	"net/http"
-	"time"
-
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/lvhungdev/gym/api"
 	"github.com/lvhungdev/gym/domain/entity"
-	"github.com/lvhungdev/gym/infras"
+	"net/http"
+	"time"
 )
 
 func HandleSignIn(c *gin.Context) {
-	uc := infras.ResolveAuthUC()
+	uc := api.GetDi(c).ResolveAuthUC()
 
 	dto := signInReqDto{}
 	if err := c.BindJSON(&dto); err != nil {
-		api.NewApiError(c, http.StatusUnauthorized, err.Error())
+		c.JSON(http.StatusUnauthorized, gin.H{"message": err})
 		return
 	}
 
 	user, err := uc.SignIn(dto.Email, dto.Password)
 	if err != nil {
-		api.NewApiError(c, http.StatusUnauthorized, err.Error())
+		c.JSON(http.StatusUnauthorized, gin.H{"message": err})
 		return
 	}
 
-	jwt, err := generateJWT(user)
+	token, err := generateJWT(user)
 	if err != nil {
-		api.NewApiError(c, http.StatusUnauthorized, err.Error())
+		c.JSON(http.StatusUnauthorized, gin.H{"message": err})
 		return
 	}
 
 	c.JSON(http.StatusOK, signInResDto{
 		Email: user.Email,
-		Token: jwt,
+		Token: token,
 	})
 }
 
 func HandleSignUp(c *gin.Context) {
-	uc := infras.ResolveAuthUC()
+	uc := api.GetDi(c).ResolveAuthUC()
 
 	dto := signUpReqDto{}
 	if err := c.BindJSON(&dto); err != nil {
-		api.NewApiError(c, http.StatusUnauthorized, err.Error())
+		c.JSON(http.StatusUnauthorized, gin.H{"message": err})
 		return
 	}
 
 	user, err := uc.SignUp(dto.Email, dto.Password)
 	if err != nil {
-		api.NewApiError(c, http.StatusUnauthorized, err.Error())
+		c.JSON(http.StatusUnauthorized, gin.H{"message": err})
 		return
 	}
 
-	jwt, err := generateJWT(user)
+	token, err := generateJWT(user)
 	if err != nil {
-		api.NewApiError(c, http.StatusUnauthorized, err.Error())
+		c.JSON(http.StatusUnauthorized, gin.H{"message": err})
 		return
 	}
 
 	c.JSON(http.StatusOK, signUpResDto{
 		Email: user.Email,
-		Token: jwt,
+		Token: token,
 	})
 }
 
@@ -69,11 +67,14 @@ func generateJWT(user entity.User) (string, error) {
 	// TODO move this to env
 	secret := []byte("my top secret key")
 
-	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": user.Email,
-		// "aud": getRole(username),
-		"exp": time.Now().Add(time.Hour).Unix(),
-		"iat": time.Now().Unix(),
+	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
+		Issuer:    "", // TODO
+		Subject:   user.Email,
+		Audience:  nil,
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+		NotBefore: jwt.NewNumericDate(time.Now()),
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
+		ID:        user.Id,
 	})
 
 	return claims.SignedString(secret)
